@@ -7,21 +7,30 @@
 # @File    : price_trend.py
 # @Software: PyCharm
 # @Desc    :
+#sql: hive -e 'select begin_date,app,utm_type,geo,payout from avazu.app_promotion_payout_dim;' >original.csv
 import os
 import shutil
 import pandas as pd
+from datetime import datetime
 from logger import logger
 
 LEN_COLUMN = 4
 CSV_FILE = 'price_trend.csv'
 ORIGINAL_CSV_FILE = 'original.csv'
-# COLUMN = ['app', 'utm_type', 'geo', 'payout']
-COLUMN = ['pt', 'a', 'b', 'c', 'd']
+COLUMN = ['data', 'app', 'type', 'geo', 'payout']
+# COLUMN = ['pt', 'a', 'b', 'c', 'd']
 pandas_data = None
+
+def format_file(file):
+    with open(file, 'r') as fd:
+        datas = fd.readlines()
+        datas = [i.strip() + '\n' for i in datas if i and i != '\n']
+    with open(file, 'w') as fd:
+        fd.writelines(datas)
 
 def get_datas(pt):
     try:
-        data = pandas_data[(pandas_data['pt']==pt)][COLUMN].to_dict('list')
+        data = pandas_data[(pandas_data['pt'] == pt)][COLUMN].to_dict('list')
         keys = data.keys()
         values = zip(*data.values())
         results = []
@@ -37,16 +46,16 @@ def set_file_datas(file_name, datas, header=True):
     df.to_csv(file_name, index=False, mode='a', header=header, columns=COLUMN)
 
 
-def get_files(path, type2):
-    name = []
-    for file in os.walk(path):
-        for each_list in file[2]:
-            if each_list.endswith(type2):
-            # os.walk()函数返回三个参数：路径，子文件夹，路径下的文件，利用字符串拼接file[0]和file[2]得到文件的路径
-                name.append(each_list)
-    name.sort()
-    paths = [os.path.join(path, x.strip()) for x in name]
-    return paths
+# def get_files(path, type2):
+#     name = []
+#     for file in os.walk(path):
+#         for each_list in file[2]:
+#             if each_list.endswith(type2):
+#             # os.walk()函数返回三个参数：路径，子文件夹，路径下的文件，利用字符串拼接file[0]和file[2]得到文件的路径
+#                 name.append(each_list)
+#     name.sort()
+#     paths = [os.path.join(path, x.strip()) for x in name]
+#     return paths
 
 def format_datas(datas):
     result = {}
@@ -96,6 +105,7 @@ def save_compare_file(before_pt, after_pt, csv_file, before_data, only_once = Fa
     if not before_data and not only_once:
         #第一天数据全部插入
         data1 = get_datas(before_pt)
+        logger.debug('length of begin_data is:{}'.format(len(data1)))
         set_file_datas(csv_file, data1, True)
     else:
         data1 = before_data
@@ -104,15 +114,18 @@ def save_compare_file(before_pt, after_pt, csv_file, before_data, only_once = Fa
     if not write_data:
         logger.info('before_pt:{} and after_pt:{} data is same'.format(before_pt, after_pt))
     else:
+        logger.debug('length of write_data is:{}'.format(len(write_data)))
         set_file_datas(csv_file, write_data, only_once)
     return data2
 
 def get_specific_data(original_csv, specific='pt'):
     global pandas_data
-    pandas_data = pd.read_csv(original_csv)
+    pandas_data = pd.read_csv(original_csv, sep='\t')
+
     # column = pandas_data.to_dict('list').keys()
     pts = pandas_data[specific].drop_duplicates().tolist()
     pts.sort()
+    pandas_data = pandas_data.drop('geo', axis=1).join(pandas_data['geo'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('geo'))
     return pts
 
 def main(dir_name):
@@ -136,11 +149,15 @@ def main(dir_name):
     for i in range(n-1):
         before_pt = pts[i]
         after_pt = pts[i+1]
+        logger.debug('begin_pt:{}, end_pt:{} begin'.format(before_pt, after_pt))
         before_data = save_compare_file(before_pt, after_pt, result_csv, before_data)
         if not before_data:
             logger.error('before_pt:{}  after_pt:{} not get result data'.format(before_pt, after_pt))
             return
-
+        logger.debug('begin_pt:{}, end_pt:{} end'.format(before_pt, after_pt))
 if __name__=='__main__':
+    startTime = datetime.now()
     dir_name = r'D:\price_trend\datas'
     main(dir_name)
+    endTime = datetime.now()
+    logger.info('all seconds:{}'.format((endTime - startTime).seconds))
