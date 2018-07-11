@@ -14,6 +14,7 @@ import pandas as pd
 from datetime import datetime
 from logger import logger
 
+S = 'data'
 LEN_COLUMN = 4
 CSV_FILE = 'price_trend.csv'
 ORIGINAL_CSV_FILE = 'original.csv'
@@ -30,7 +31,7 @@ def format_file(file):
 
 def get_datas(pt):
     try:
-        data = pandas_data[(pandas_data['pt'] == pt)][COLUMN].to_dict('list')
+        data = pandas_data[(pandas_data[S] == pt)][COLUMN].to_dict('list')
         keys = data.keys()
         values = zip(*data.values())
         results = []
@@ -118,7 +119,7 @@ def save_compare_file(before_pt, after_pt, csv_file, before_data, only_once = Fa
         set_file_datas(csv_file, write_data, only_once)
     return data2
 
-def get_specific_data(original_csv, specific='pt'):
+def get_specific_data(original_csv, specific=S):
     global pandas_data
     pandas_data = pd.read_csv(original_csv, sep='\t')
 
