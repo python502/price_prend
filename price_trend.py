@@ -9,6 +9,7 @@
 # @Desc    :
 #sql: hive -e 'select begin_date,app,utm_type,geo,payout from avazu.app_promotion_payout_dim;' >original.csv
 import os
+import re
 import shutil
 import pandas as pd
 from datetime import datetime
@@ -121,10 +122,6 @@ def save_compare_file(before_pt, after_pt, csv_file, before_data, only_once = Fa
         set_file_datas(csv_file, write_data, only_once)
     return data2
 
-#remove float non
-def remove_non(data):
-    if isinstance(data, str):
-        return True
 def get_specific_data(original_csv, specific=S):
     global pandas_data
     pandas_data = pd.read_csv(original_csv, sep='\t')
@@ -132,7 +129,7 @@ def get_specific_data(original_csv, specific=S):
     # column = pandas_data.to_dict('list').keys()
     pts = pandas_data[specific].drop_duplicates().tolist()
     pts.sort()
-    pts = filter(remove_non, pts)
+    pts = filter(lambda pt: True if isinstance(pt, str) and re.search('^\d{4}-\d{2}-\d{2}$', pt) else False, pts)
     pandas_data = pandas_data.drop('geo', axis=1).join(pandas_data['geo'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('geo'))
     return pts
 
