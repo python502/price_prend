@@ -14,13 +14,15 @@ import pandas as pd
 from datetime import datetime
 from logger import logger
 
-S = 'data'
+S = 'date'
+SPLICE = '^'
 LEN_COLUMN = 4
 CSV_FILE = 'price_trend.csv'
 ORIGINAL_CSV_FILE = 'original.csv'
-COLUMN = ['data', 'app', 'type', 'geo', 'payout']
+COLUMN = [S, 'app', 'type', 'geo', 'payout']
 # COLUMN = ['pt', 'a', 'b', 'c', 'd']
 pandas_data = None
+
 
 def format_file(file):
     with open(file, 'r') as fd:
@@ -60,7 +62,7 @@ def set_file_datas(file_name, datas, header=True):
 
 def format_datas(datas):
     result = {}
-    format_str = '{}_{}_{}'
+    format_str = SPLICE.join(['{}','{}','{}'])
     for data in datas:
         if len(data) != LEN_COLUMN:
             logger.error('data:{} len error')
@@ -93,7 +95,7 @@ def compare_file(data1, data2, time_in):
         all_key = result[3]
         for x in all_key:
             value = dif_data2.get(x, 0)
-            line = x.split('_')
+            line = x.split(SPLICE)
             line.append(value)
             line.insert(0, time_in)
             write_lines.append(dict(zip(COLUMN, line)))
@@ -119,6 +121,10 @@ def save_compare_file(before_pt, after_pt, csv_file, before_data, only_once = Fa
         set_file_datas(csv_file, write_data, only_once)
     return data2
 
+#remove float non
+def remove_non(data):
+    if isinstance(data, str):
+        return True
 def get_specific_data(original_csv, specific=S):
     global pandas_data
     pandas_data = pd.read_csv(original_csv, sep='\t')
@@ -126,6 +132,7 @@ def get_specific_data(original_csv, specific=S):
     # column = pandas_data.to_dict('list').keys()
     pts = pandas_data[specific].drop_duplicates().tolist()
     pts.sort()
+    pts = filter(remove_non, pts)
     pandas_data = pandas_data.drop('geo', axis=1).join(pandas_data['geo'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('geo'))
     return pts
 
