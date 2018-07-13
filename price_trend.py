@@ -21,7 +21,6 @@ LEN_COLUMN = 4
 CSV_FILE = 'price_trend.csv'
 ORIGINAL_CSV_FILE = 'original.csv'
 COLUMN = [S, 'app', 'type', 'geo', 'payout']
-# COLUMN = ['pt', 'a', 'b', 'c', 'd']
 pandas_data = None
 
 
