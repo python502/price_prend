@@ -120,8 +120,8 @@ def file_split(csv_file, column_info):
     for key, value in column_info.get('split_data').iteritems():
         csv_name = file_name[:-4]+key+'.csv'
         csv_file = os.path.join(child_dir, csv_name)
-        throw = list(set(tuple(column_info.get('columns_original')))-set(tuple(value)))
-        check = list(set(tuple(value)) - set(tuple(column_info.get('uncheck_columns'))))
+        throw = list(set(column_info.get('columns_original'))-set(value))
+        check = list(set(value) - set(column_info.get('uncheck_columns')))
         datas = get_csv_data(pandas_data, throw, check, column_info.get('format_columns'), column_info.get('add_columns', {}), column_info.get('add_map_columns', {}))
         if datas.empty:
             logger.error('csv_name: {} no need write'.format(csv_name))
@@ -209,6 +209,9 @@ def main(argv):
         logger.info('geo_dau begin')
         geo_dau_split()
         logger.info('geo_dau finish')
+
+    elif sys.argv[1] in ['--help', '-h']:
+        logger.info('Input parameter must be cost_dau or geo_dau or not input')
 
     else:
         logger.info('Input parameter error, must be cost_dau or geo_dau or not input')
