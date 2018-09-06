@@ -17,10 +17,10 @@ from logger import logger
 
 S = 'date'
 SPLICE = '^'
-LEN_COLUMN = 4
 CSV_FILE = 'price_trend.csv'
 ORIGINAL_CSV_FILE = 'original.csv'
-COLUMN = [S, 'app', 'type', 'geo', 'payout']
+COLUMN = [S, 'app', 'type', 'geo', 'payout', 'tier', 'descr']
+LEN_COLUMN = len(COLUMN)-1
 pandas_data = None
 
 
@@ -123,7 +123,7 @@ def save_compare_file(before_pt, after_pt, csv_file, before_data, only_once = Fa
 
 def get_specific_data(original_csv, specific=S):
     global pandas_data
-    pandas_data = pd.read_csv(original_csv, sep='\t')
+    pandas_data = pd.read_csv(original_csv)
 
     # column = pandas_data.to_dict('list').keys()
     pts = pandas_data[specific].drop_duplicates().tolist()
@@ -159,9 +159,19 @@ def main(dir_name):
             logger.error('before_pt:{}  after_pt:{} not get result data'.format(before_pt, after_pt))
             return
         logger.debug('begin_pt:{}, end_pt:{} end'.format(before_pt, after_pt))
+
+def renew_original(original_dir):
+    original_file = os.path.join(original_dir, ORIGINAL_CSV_FILE)
+    pandas_data = pd.read_csv(original_file, sep='\t')
+    pandas_data = pandas_data.drop(pandas_data.loc[pandas_data['date'] == 'date'].index)
+    pandas_data.to_csv(original_file, index=False)
+
+
+
 if __name__=='__main__':
     startTime = datetime.now()
     dir_name = r'D:\price_trend\datas'
     main(dir_name)
+    # renew_original(dir_name)
     endTime = datetime.now()
     logger.info('all seconds:{}'.format((endTime - startTime).seconds))
