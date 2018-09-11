@@ -82,6 +82,7 @@ def format_datas(datas):
         if len(data) != LEN_COLUMN:
             logger.error('data:{} len error')
             continue
+        #['app', 'type', 'geo', 'payout', 'tier', 'descr']
         result[format_str.format(data[0], data[1], data[2])] = [data[3], data[4], data[5]]
     return result
 
@@ -100,7 +101,9 @@ def compare_file(data1, data2, time_in):
         result = set_com(keys_1, keys_2)
         all_key = result[3]
         for x in all_key:
-            value = dif_data2.get(x, [0.0, 'Tier1'])
+            #默认Tier1
+            # value = dif_data2.get(x, [0.0, 'Tire1', ''])
+            value = dif_data2.get(x) if dif_data2.get(x) else ['0.0', dif_data1.get(x)[1], dif_data1.get(x)[2]]
             line = x.split(SPLICE)
             line.extend(value)
             line.insert(0, time_in)
@@ -141,7 +144,8 @@ def generate_price_serial(operate_dir):
         logger.info('file:{} get pt info less:{},so only copy it'.format(original_csv, dates))
         shutil.copy(original_csv, result_csv)
         return True
-    pandas_data = format_global_data(original_csv)
+    pandas_data = format_global_data(original_csv, False)
+    # pandas_data = pd.read_csv(r'./temporary.csv', dtype=str)
     if pandas_data.empty:
         logger.error('not get valid pandas data')
         return
@@ -175,6 +179,7 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
         if data['date'] != date:
             date = data['date']
             tmp_pandas_data = pandas_data.loc[pandas_data['date'] == data['date']]
+        #data['tier'] == 'Global'
         add_geo_global[(data['date'], data['app'], data['type'], 'global', data['tier'])] = [data['payout'], data['descr']]
         map_info = tmp_pandas_data.loc[(tmp_pandas_data['date'] == data['date'])&\
                                    (tmp_pandas_data['app'] == data['app'])&\
