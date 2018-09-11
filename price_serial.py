@@ -164,7 +164,9 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
     pandas_data = pd.read_csv(original_csv, dtype=str)
     pandas_data = pandas_data.drop('geo', axis=1).join(
         pandas_data['geo'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('geo')).reset_index(drop=True)
-    indexs = pandas_data.loc[pandas_data['tier'].isin(['Global'])].index
+    indexs = pandas_data.loc[pandas_data['tier'].str.lower() == 'global'].index
+    # indexs = pandas_data.loc[pandas_data['tier'].isin(['Global'])].index
+
     logger.info('get Global row:{}'.format(len(indexs)))
     add_geo_global = dict()
     row = 0
@@ -210,7 +212,8 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
 
 def get_all_date(original_csv, specific=S):
     pandas_data = pd.read_csv(original_csv, dtype=str)
-    dates = pandas_data.loc[:, specific].drop_duplicates().tolist()
+    dates = pandas_data.loc[:, specific].unique().tolist()#unique()获取唯一值
+    # dates = pandas_data.loc[:, specific].drop_duplicates().tolist()
     dates.sort()
     pts = filter(lambda pt: True if isinstance(pt, str) and re.search('^\d{4}-\d{2}-\d{2}$', pt) else False, dates)
     return pts
