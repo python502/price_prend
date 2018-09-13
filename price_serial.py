@@ -139,16 +139,21 @@ def generate_price_serial(operate_dir):
     if os.path.exists(result_csv):
         os.remove(result_csv)
     dates = get_all_date(original_csv, 'date')
-    n = len(dates)
-    if n < 2:
-        logger.info('file:{} get pt info less:{},so only copy it'.format(original_csv, dates))
-        shutil.copy(original_csv, result_csv)
-        return True
+    # if n < 2:
+    #     logger.info('file:{} get pt info less:{},so only copy it'.format(original_csv, dates))
+    #     shutil.copy(original_csv, result_csv)
+    #     return True
     pandas_data = format_global_data(original_csv, False)
+
     # pandas_data = pd.read_csv(r'./temporary.csv', dtype=str)
     if pandas_data.empty:
         logger.error('not get valid pandas data')
         return
+
+    n = len(dates)
+    if n < 2:
+        set_file_datas(result_csv, pandas_data)
+        return True
 
     first_day = True
     for i in range(n-1):
@@ -188,8 +193,12 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
                                    (tmp_pandas_data['type'] == data['type'])&\
                                    (tmp_pandas_data['geo'] == data['geo'])&\
                                    (tmp_pandas_data['tier'].isin(['Tier1', 'Tier2', 'Tier3', 'Tier4', 'Tier5']))]
+        #没发现其他相同的但是tier的 所以价格改为0.0
         if map_info.empty:
             pandas_data.loc[index]['payout'] = 0.0
+        else:
+        #发现其他的 所以此条记录删除
+            pandas_data = pandas_data.drop(index)
     add_data = list()
     logger.info('add row which geo is "global" begin')
     for key, value in add_geo_global.iteritems():
