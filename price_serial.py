@@ -169,7 +169,7 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
     pandas_data = pd.read_csv(original_csv, dtype=str)
     pandas_data = pandas_data.drop('geo', axis=1).join(
         pandas_data['geo'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('geo')).reset_index(drop=True)
-    indexs = pandas_data.loc[pandas_data['tier'].str.lower() == 'global'].index
+    indexs = pandas_data.loc[pandas_data['tier'].isin(['Global', 'Global-TH'])].index
     # indexs = pandas_data.loc[pandas_data['tier'].isin(['Global'])].index
 
     logger.info('get Global row:{}'.format(len(indexs)))
@@ -187,7 +187,7 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
             date = data['date']
             tmp_pandas_data = pandas_data.loc[pandas_data['date'] == data['date']]
         #data['tier'] == 'Global'
-        add_geo_global[(data['date'], data['app'], data['type'], 'global', data['tier'])] = [data['payout'], data['descr']]
+        add_geo_global[(data['date'], data['app'], data['type'], 'global', 'Done')] = [data['payout'], data['descr']]
         map_info = tmp_pandas_data.loc[(tmp_pandas_data['date'] == data['date'])&\
                                    (tmp_pandas_data['app'] == data['app'])&\
                                    (tmp_pandas_data['type'] == data['type'])&\
@@ -195,7 +195,7 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
                                    (tmp_pandas_data['tier'].isin(['Tier1', 'Tier2', 'Tier3', 'Tier4', 'Tier5']))]
         #没发现其他相同的但是tier的 所以价格改为0.0
         if map_info.empty:
-            pandas_data.loc[index]['payout'] = 0.0
+            pandas_data.loc[index]['payout', 'tier'] = [0.0, 'Done']
         else:
         #发现其他的 所以此条记录删除
             pandas_data = pandas_data.drop(index)
