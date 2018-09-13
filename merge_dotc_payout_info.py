@@ -9,8 +9,6 @@
 # @Desc    :
 import argparse
 import time
-# import pymysql
-# import sqlalchemy
 from sqlalchemy import *
 from datetime import datetime
 import pandas as pd
@@ -50,7 +48,9 @@ class Logger():
     def getlogger(cls):
         return cls.__cur_logger
 
+
 logger = Logger(logging.DEBUG).getlogger()
+
 
 DB_INFO = {'DB_USER': 'root',
            'DB_PASS': '111111',
@@ -61,9 +61,6 @@ DB_INFO = {'DB_USER': 'root',
 TABLE_PAYOUT_INFO = 'dotc_payout_info'
 TABLE_PAYOUT_INFO_UPLOAD = 'dotc_payout_info_upload'
 DEFAULT_TIME = 943891200
-
-def newest_item(df):
-    return df.sort_values('create_time', ascending=False).iloc[0]
 
 
 def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
@@ -155,6 +152,7 @@ def get_newest(pandas_data):
         return pd.DataFrame.empty
     return pandas_data
 
+
 def merge_dotc_payout_info(pt):
     try:
         #connect to db
@@ -212,12 +210,13 @@ def merge_dotc_payout_info(pt):
                         (tmp_pandas_payout_info['descr'] == item['descr'])].empty:
                     update(item, dotc_payout_info, connect)
                 else:
-                    logger.info('same')
+                    logger.debug('same')
                     continue
         return True
     except Exception, ex:
         logger.error('merge_dotc_payout_info error,ex:{}'.format(ex))
         return False
+
 
 def update(item, table, conn):
     if isinstance(item['descr'], unicode):
@@ -232,6 +231,7 @@ def update(item, table, conn):
                               create_time=int(item['create_time'])).where(table.c.date==str(item['date']).strip()).where(table.c.app==str(item['app']).strip()).where(table.c.type==str(item['type']).strip()).where(table.c.geo==str(item['geo']).strip())
     conn.execute(u)
 
+
 def add(item, table, conn):
     if isinstance(item['descr'], unicode):
         item['descr'] = item['descr'].encode('utf-8')
@@ -244,6 +244,8 @@ def add(item, table, conn):
                               descr=str(item['descr']).strip(),
                               create_time=int(item['create_time']))
     conn.execute(i)
+
+
 def main():
     parser = argparse.ArgumentParser(description='merge dotc_payout_info_upload data to dotc_payout_info')
     parser.add_argument('-p', '--pt', default=int(time.time()), type=int,
@@ -251,6 +253,7 @@ def main():
     args = parser.parse_args()
     pt = args.pt
     sys.exit(0) if merge_dotc_payout_info(pt) else sys.exit(1)
+
 
 if __name__ == '__main__':
     startTime = datetime.now()
