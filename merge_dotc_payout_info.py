@@ -95,7 +95,8 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
                                            (tmp_pandas_data['app'] == data['app']) & \
                                            (tmp_pandas_data['type'] == data['type']) & \
                                            (tmp_pandas_data['geo'] == data['geo']) & \
-                                           (tmp_pandas_data['tier'].isin(['Tier1', 'Tier2', 'Tier3', 'Tier4', 'Tier5']))]
+                                           # (tmp_pandas_data['tier'].isin(['Tier', 'Tier1', 'Tier2', 'Tier3', 'Tier4', 'Tier5']))]
+                                           (tmp_pandas_data['tier'].str.startswith('Tier', na=False))]
             # 没发现其他相同的但是tier的 所以价格改为0.0
             if map_info.empty:
                 pandas_data.loc[index]['payout', 'tier'] = [0.0, 'Done']
@@ -144,7 +145,7 @@ def get_newest(pandas_data):
     pandas_data = pd.DataFrame(columns=['date', 'app', 'type', 'geo', 'payout', 'tier', 'descr', 'create_time'])
     # 获取最新的df
     for key, value in all_datas.iteritems():
-        logger.info('key: {}'.format(key))
+        logger.debug('key: {}'.format(key))
         pandas_data = pandas_data.append(value, ignore_index=True)
     if pandas_data.empty:
         logger.error('df is empty')
@@ -162,7 +163,7 @@ def merge_dotc_payout_info(pt):
         new_merge_time = pd.read_sql('select create_time from {} order by create_time desc limit 1'.format(TABLE_PAYOUT_INFO), con=engine)['create_time'].tolist()
         new_merge_time = new_merge_time[0] if new_merge_time else DEFAULT_TIME
 
-        need_merge_data = pd.read_sql('select date, app, type, geo, payout, tier, descr, create_time from {} where create_time BETWEEN {} and {} order by create_time,date '.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
+        need_merge_data = pd.read_sql('select date, app, type, geo, payout, tier, descr, create_time from {} where create_time BETWEEN {} and {} order by create_time,date'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
         # need_merge_data = pd.read_sql('select date, app, type, geo, payout, tier, descr, create_time from {} where create_time>={} and create_time<={} order by create_time,date '.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
 
         if need_merge_data.empty:
