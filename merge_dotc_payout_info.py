@@ -121,7 +121,6 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
         pandas_data = pandas_data.sort_values(by="date")
         if write_tmp:
             pandas_data.to_csv(write_tmp, encoding='utf-8', index=False, columns=['date', 'app', 'type', 'geo', 'payout', 'tier', 'descr', 'create_time'])
-
         return pandas_data
     except Exception:
         raise
@@ -228,7 +227,11 @@ def update(item, table, conn):
                               tier=str(item['tier']).strip(),
                               payout=float(item['payout']),
                               descr=str(item['descr']).strip(),
-                              create_time=int(item['create_time'])).where(table.c.date==str(item['date']).strip()).where(table.c.app==str(item['app']).strip()).where(table.c.type==str(item['type']).strip()).where(table.c.geo==str(item['geo']).strip())
+                              create_time=int(item['create_time']))\
+        .where(table.c.date == str(item['date']).strip())\
+        .where(table.c.app == str(item['app']).strip())\
+        .where(table.c.type == str(item['type']).strip())\
+        .where(table.c.geo == str(item['geo']).strip())
     conn.execute(u)
 
 
