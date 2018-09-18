@@ -49,8 +49,7 @@ class Logger():
         return cls.__cur_logger
 
 
-logger = Logger(logging.DEBUG).getlogger()
-
+logger = Logger(logging.INFO, 'merge_dotc_payout_info.log').getlogger()
 
 DB_INFO = {'DB_USER': 'root',
            'DB_PASS': '111111',
@@ -73,7 +72,7 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
             pandas_data['geo'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('geo')).reset_index(drop=True)
         pandas_data = pandas_data.drop_duplicates()
         indexs = pandas_data.loc[pandas_data['tier'].str.lower() == 'global'].index
-        logger.info('get Global row:{}'.format(len(indexs)))
+        logger.debug('get Global row:{}'.format(len(indexs)))
         add_geo_global = dict()
         # row = 0
         date = ''
@@ -104,7 +103,7 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
                 # 发现其他的 所以此条记录删除
                 pandas_data = pandas_data.drop(index)
         add_data = list()
-        logger.info('add row which geo is "global" begin')
+        logger.debug('add row which geo is "global" begin')
         for key, value in add_geo_global.iteritems():
             row_add = dict()
             row_add['date'] = key[0]
@@ -157,7 +156,7 @@ def merge_dotc_payout_info(pt):
     try:
         #connect to db
         connect_info = 'mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DATABASE}?charset=utf8'.format(**DB_INFO)
-        engine = create_engine(connect_info, echo=True)
+        engine = create_engine(connect_info, echo=False)
         metadata = MetaData(engine)
         connect = engine.connect()
         new_merge_time = pd.read_sql('select create_time from {} order by create_time desc limit 1'.format(TABLE_PAYOUT_INFO), con=engine)['create_time'].tolist()
@@ -167,17 +166,17 @@ def merge_dotc_payout_info(pt):
         # need_merge_data = pd.read_sql('select date, app, type, geo, payout, tier, descr, create_time from {} where create_time>={} and create_time<={} order by create_time,date '.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
 
         if need_merge_data.empty:
-            logger.info('no data need merge')
-            return True
+            logger.error('no data need merge')
+            return False
         need_merge_data = format_global_data(need_merge_data)
 
         if need_merge_data.empty:
-            logger.info('no data need merge after format global data')
+            logger.error('no data need merge after format global data')
             return False
         need_merge_data = get_newest(need_merge_data)
 
         if need_merge_data.empty:
-            logger.info('no data need merge after get newest data')
+            logger.error('no data need merge after get newest data')
             return False
         dates = need_merge_data.loc[:, 'date'].unique().tolist()
         dates = ['"'+d+'"' for d in dates]
@@ -197,7 +196,6 @@ def merge_dotc_payout_info(pt):
                                            (tmp_pandas_payout_info['app'] == item['app']) & \
                                            (tmp_pandas_payout_info['type'] == item['type']) & \
                                            (tmp_pandas_payout_info['geo'] == item['geo'])].empty:
-
                 add(item, dotc_payout_info, connect)
             else:
                 if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['date'] == item['date']) & \
@@ -210,7 +208,7 @@ def merge_dotc_payout_info(pt):
                         (tmp_pandas_payout_info['descr'] == item['descr'])].empty:
                     update(item, dotc_payout_info, connect)
                 else:
-                    logger.debug('same')
+                    logger.debug('item:{} same'.format(item))
                     continue
         return True
     except Exception, ex:
