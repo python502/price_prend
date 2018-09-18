@@ -166,7 +166,7 @@ def merge_dotc_payout_info(pt):
 
         if need_merge_data.empty:
             logger.error('no data need merge')
-            return False
+            return True
         need_merge_data = format_global_data(need_merge_data)
 
         if need_merge_data.empty:
