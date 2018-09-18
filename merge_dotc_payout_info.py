@@ -12,7 +12,6 @@ import time
 from sqlalchemy import *
 from datetime import datetime
 import pandas as pd
-import os
 import sys
 import logging
 import logging.handlers
@@ -26,7 +25,7 @@ format_dict = {
 }
 
 
-class Logger():
+class Logger(object):
     __cur_logger = logging.getLogger()
 
     def __init__(self, loglevel, file='default.log', mode='w'):
@@ -34,9 +33,9 @@ class Logger():
         new_logger = logging.getLogger(__name__)
         new_logger.setLevel(loglevel)
         formatter = format_dict[loglevel]
-        filehandler = logging.handlers.RotatingFileHandler(os.path.join(os.path.dirname(os.path.abspath(__file__)), file), mode=mode)
-        filehandler.setFormatter(formatter)
-        new_logger.addHandler(filehandler)
+        # filehandler = logging.handlers.RotatingFileHandler(os.path.join(os.path.dirname(os.path.abspath(__file__)), file), mode=mode)
+        # filehandler.setFormatter(formatter)
+        # new_logger.addHandler(filehandler)
         #create handle for stdout
         streamhandler = logging.StreamHandler()
         streamhandler.setFormatter(formatter)
@@ -75,7 +74,7 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
         logger.debug('get Global row:{}'.format(len(indexs)))
         add_geo_global = dict()
         # row = 0
-        date = ''
+        beg_date = ''
         create_time = ''
         tmp_pandas_data = None
         for index in indexs:
@@ -84,13 +83,13 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
             # row += 1
             # logger.debug('row [{}] is running now'.format(row))
             data = pandas_data.loc[index]
-            if data['date'] != date or data['create_time'] != create_time:
-                date = data['date']
+            if data['beg_date'] != beg_date or data['create_time'] != create_time:
+                beg_date = data['beg_date']
                 create_time = data['create_time']
-                tmp_pandas_data = pandas_data.loc[(pandas_data['date'] == data['date']) & (pandas_data['create_time'] == data['create_time'])]
+                tmp_pandas_data = pandas_data.loc[(pandas_data['beg_date'] == data['beg_date']) & (pandas_data['create_time'] == data['create_time'])]
             # data['tier'] == 'Global'
-            add_geo_global[(data['date'], data['app'], data['type'], 'global', 'Done', data['create_time'])] = [data['payout'], data['descr']]
-            map_info = tmp_pandas_data.loc[(tmp_pandas_data['date'] == data['date']) & \
+            add_geo_global[(data['beg_date'], data['app'], data['type'], 'global', 'Done', data['create_time'])] = [data['payout'], data['descr']]
+            map_info = tmp_pandas_data.loc[(tmp_pandas_data['beg_date'] == data['beg_date']) & \
                                            (tmp_pandas_data['app'] == data['app']) & \
                                            (tmp_pandas_data['type'] == data['type']) & \
                                            (tmp_pandas_data['geo'] == data['geo']) & \
@@ -106,7 +105,7 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
         logger.debug('add row which geo is "global" begin')
         for key, value in add_geo_global.iteritems():
             row_add = dict()
-            row_add['date'] = key[0]
+            row_add['beg_date'] = key[0]
             row_add['app'] = key[1]
             row_add['type'] = key[2]
             row_add['geo'] = key[3]
@@ -118,30 +117,30 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
             add_data.append(row_add)
         pandas_add = pd.DataFrame(add_data)
         pandas_data = pandas_data.append(pandas_add, ignore_index=True)
-        pandas_data = pandas_data.sort_values(by="date")
+        pandas_data = pandas_data.sort_values(by="beg_date")
         if write_tmp:
-            pandas_data.to_csv(write_tmp, encoding='utf-8', index=False, columns=['date', 'app', 'type', 'geo', 'payout', 'tier', 'descr', 'create_time'])
+            pandas_data.to_csv(write_tmp, encoding='utf-8', index=False, columns=['beg_date', 'app', 'type', 'geo', 'payout', 'tier', 'descr', 'create_time'])
         return pandas_data
     except Exception:
         raise
 
 
 def get_newest(pandas_data):
-    datas_groupby_date = pandas_data.groupby(['date', 'app', 'type', 'geo'])
+    datas_groupby_date = pandas_data.groupby(['beg_date', 'app', 'type', 'geo'])
     all_datas = dict()
     for row in datas_groupby_date:
-        date = row[0]
+        beg_date = row[0]
         row_date = row[1]
         datas_groupby_create_time = row_date.groupby(['create_time'])
         all_create_time = list()
         tmp_datas = dict()
         for row_create in datas_groupby_create_time:
             all_create_time.append(row_create[0])
-            tmp_datas[(date, row_create[0])] = row_create[1]
+            tmp_datas[(beg_date, row_create[0])] = row_create[1]
         all_create_time.sort(reverse=True)
-        all_datas[(date, all_create_time[0])] = tmp_datas[(date, all_create_time[0])]
+        all_datas[(beg_date, all_create_time[0])] = tmp_datas[(beg_date, all_create_time[0])]
 
-    pandas_data = pd.DataFrame(columns=['date', 'app', 'type', 'geo', 'payout', 'tier', 'descr', 'create_time'])
+    pandas_data = pd.DataFrame(columns=['beg_date', 'app', 'type', 'geo', 'payout', 'tier', 'descr', 'create_time'])
     # 获取最新的df
     for key, value in all_datas.iteritems():
         logger.debug('key: {}'.format(key))
@@ -159,11 +158,11 @@ def merge_dotc_payout_info(pt):
         engine = create_engine(connect_info, echo=False)
         metadata = MetaData(engine)
         connect = engine.connect()
-        new_merge_time = pd.read_sql('select create_time from {} order by create_time desc limit 1'.format(TABLE_PAYOUT_INFO), con=engine)['create_time'].tolist()
+        new_merge_time = pd.read_sql('select update_time from {} order by update_time desc limit 1'.format(TABLE_PAYOUT_INFO), con=engine)['update_time'].tolist()
         new_merge_time = new_merge_time[0] if new_merge_time else DEFAULT_TIME
 
-        need_merge_data = pd.read_sql('select date, app, type, geo, payout, tier, descr, create_time from {} where create_time BETWEEN {} and {} order by create_time,date'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
-        # need_merge_data = pd.read_sql('select date, app, type, geo, payout, tier, descr, create_time from {} where create_time>={} and create_time<={} order by create_time,date '.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
+        need_merge_data = pd.read_sql('select beg_date, app, type, geo, payout, tier, descr, create_time from {} where create_time BETWEEN {} and {} order by create_time,beg_date'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
+        # need_merge_data = pd.read_sql('select beg_date, app, type, geo, payout, tier, descr, create_time from {} where create_time>={} and create_time<={} order by create_time,beg_date '.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
 
         if need_merge_data.empty:
             logger.error('no data need merge')
@@ -178,32 +177,32 @@ def merge_dotc_payout_info(pt):
         if need_merge_data.empty:
             logger.error('no data need merge after get newest data')
             return False
-        dates = need_merge_data.loc[:, 'date'].unique().tolist()
+        dates = need_merge_data.loc[:, 'beg_date'].unique().tolist()
         dates = ['"'+d+'"' for d in dates]
-        pandas_payout_info = pd.read_sql('select date, app, type, geo, payout, tier, descr, create_time from {} where date in ({})'.format(TABLE_PAYOUT_INFO, ','.join(dates)), con=engine)
-        x = pandas_payout_info[['payout', 'create_time']].astype(str)
-        pandas_payout_info = pandas_payout_info.drop(['payout', 'create_time'], axis=1)
+        pandas_payout_info = pd.read_sql('select beg_date, app, type, geo, payout, tier, descr, update_time from {} where beg_date in ({})'.format(TABLE_PAYOUT_INFO, ','.join(dates)), con=engine)
+        x = pandas_payout_info[['payout', 'update_time']].astype(str)
+        pandas_payout_info = pandas_payout_info.drop(['payout', 'update_time'], axis=1)
         pandas_payout_info = pandas_payout_info.join(x)
         dotc_payout_info = Table(TABLE_PAYOUT_INFO, metadata, autoload=True)
-        date = ''
+        beg_date = ''
         tmp_pandas_payout_info = None
         for i in range(len(need_merge_data)):
             item = need_merge_data.iloc[i]
-            if item['date'] != date:
-                date = item['date']
-                tmp_pandas_payout_info = pandas_payout_info.loc[pandas_payout_info['date'] == item['date']]
-            if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['date'] == item['date']) & \
+            if item['beg_date'] != beg_date:
+                beg_date = item['beg_date']
+                tmp_pandas_payout_info = pandas_payout_info.loc[pandas_payout_info['beg_date'] == item['beg_date']]
+            if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date']) & \
                                            (tmp_pandas_payout_info['app'] == item['app']) & \
                                            (tmp_pandas_payout_info['type'] == item['type']) & \
                                            (tmp_pandas_payout_info['geo'] == item['geo'])].empty:
                 add(item, dotc_payout_info, connect)
             else:
-                if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['date'] == item['date']) & \
+                if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date']) & \
                         (tmp_pandas_payout_info['app'] == item['app']) & \
                         (tmp_pandas_payout_info['type'] == item['type']) & \
                         (tmp_pandas_payout_info['geo'] == item['geo'])& \
                         (tmp_pandas_payout_info['payout'] == str(item['payout'])) & \
-                        (tmp_pandas_payout_info['create_time'] == item['create_time']) & \
+                        (tmp_pandas_payout_info['update_time'] == item['create_time']) & \
                         (tmp_pandas_payout_info['tier'] == item['tier']) &\
                         (tmp_pandas_payout_info['descr'] == item['descr'])].empty:
                     update(item, dotc_payout_info, connect)
@@ -219,15 +218,15 @@ def merge_dotc_payout_info(pt):
 def update(item, table, conn):
     if isinstance(item['descr'], unicode):
         item['descr'] = item['descr'].encode('utf-8')
-    u = table.update().values(date=str(item['date']).strip(),
+    u = table.update().values(beg_date=str(item['beg_date']).strip(),
                               app=str(item['app']).strip(),
                               type=str(item['type']).strip(),
                               geo=str(item['geo']).strip(),
                               tier=str(item['tier']).strip(),
                               payout=float(item['payout']),
                               descr=str(item['descr']).strip(),
-                              create_time=int(item['create_time']))\
-        .where(table.c.date == str(item['date']).strip())\
+                              update_time=int(item['create_time']))\
+        .where(table.c.beg_date == str(item['beg_date']).strip())\
         .where(table.c.app == str(item['app']).strip())\
         .where(table.c.type == str(item['type']).strip())\
         .where(table.c.geo == str(item['geo']).strip())
@@ -237,14 +236,14 @@ def update(item, table, conn):
 def add(item, table, conn):
     if isinstance(item['descr'], unicode):
         item['descr'] = item['descr'].encode('utf-8')
-    i = table.insert().values(date=str(item['date']).strip(),
+    i = table.insert().values(beg_date=str(item['beg_date']).strip(),
                               app=str(item['app']).strip(),
                               type=str(item['type']).strip(),
                               geo=str(item['geo']).strip(),
                               tier=str(item['tier']).strip(),
                               payout=float(item['payout']),
                               descr=str(item['descr']).strip(),
-                              create_time=int(item['create_time']))
+                              update_time=int(item['create_time']))
     conn.execute(i)
 
 
