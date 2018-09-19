@@ -161,10 +161,12 @@ def merge_dotc_payout_info(pt):
         new_merge_time = pd.read_sql('select update_time from {} order by update_time desc limit 1'.format(TABLE_PAYOUT_INFO), con=engine)['update_time'].tolist()
         new_merge_time = new_merge_time[0] if new_merge_time else DEFAULT_TIME
 
-        desc_table_count = pd.read_sql('select count(*) from {} where update_time={}'.format(TABLE_PAYOUT_INFO, new_merge_time), con=engine)['count(*)'].tolist()[0]
-        source_table_count = pd.read_sql('select count(*) from {} where create_time={}'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time), con=engine)['count(*)'].tolist()[0]
-        if desc_table_count == source_table_count:
-            new_merge_time += 1
+        if new_merge_time != DEFAULT_TIME:
+            desc_table_count = pd.read_sql('select count(*) from {} where update_time={}'.format(TABLE_PAYOUT_INFO, new_merge_time), con=engine)['count(*)'].tolist()[0]
+            source_table_count = pd.read_sql('select count(*) from {} where create_time={}'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time), con=engine)['count(*)'].tolist()[0]
+            if desc_table_count == source_table_count:
+                logger.info('new_merge_time:{} is complete,so skip it'.format(new_merge_time))
+                new_merge_time += 1
         need_merge_data = pd.read_sql('select beg_date, app, type, geo, payout, tier, descr, create_time from {} where create_time BETWEEN {} and {} order by create_time,beg_date'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
         # need_merge_data = pd.read_sql('select beg_date, app, type, geo, payout, tier, descr, create_time from {} where create_time>={} and create_time<={} order by create_time,beg_date '.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
 
@@ -191,24 +193,25 @@ def merge_dotc_payout_info(pt):
         beg_date = ''
         tmp_pandas_payout_info = None
         for i in range(len(need_merge_data)):
-            item = need_merge_data.iloc[i]
+            item = need_merge_data.iloc[i].to_dict()
+            item = {key: str(value).strip() for key, value in item.iteritems()}
             if item['beg_date'] != beg_date:
                 beg_date = item['beg_date']
-                tmp_pandas_payout_info = pandas_payout_info.loc[pandas_payout_info['beg_date'] == item['beg_date'].strip()]
-            if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date'].strip()) & \
-                                           (tmp_pandas_payout_info['app'] == item['app'].strip()) & \
-                                           (tmp_pandas_payout_info['type'] == item['type'].strip()) & \
-                                           (tmp_pandas_payout_info['geo'] == item['geo'].strip())].empty:
+                tmp_pandas_payout_info = pandas_payout_info.loc[pandas_payout_info['beg_date'] == item['beg_date']]
+            if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date']) & \
+                                           (tmp_pandas_payout_info['app'] == item['app']) & \
+                                           (tmp_pandas_payout_info['type'] == item['type']) & \
+                                           (tmp_pandas_payout_info['geo'] == item['geo'])].empty:
                 add(item, dotc_payout_info, connect)
             else:
-                if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date'].strip()) & \
-                        (tmp_pandas_payout_info['app'] == item['app'].strip()) & \
-                        (tmp_pandas_payout_info['type'] == item['type'].strip()) & \
-                        (tmp_pandas_payout_info['geo'] == item['geo'].strip())& \
-                        (tmp_pandas_payout_info['payout'] == str(item['payout'])) & \
-                        (tmp_pandas_payout_info['update_time'] == item['create_time'].strip()) & \
-                        (tmp_pandas_payout_info['tier'] == item['tier'].strip()) &\
-                        (tmp_pandas_payout_info['descr'] == item['descr'].strip())].empty:
+                if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date']) & \
+                        (tmp_pandas_payout_info['app'] == item['app']) & \
+                        (tmp_pandas_payout_info['type'] == item['type']) & \
+                        (tmp_pandas_payout_info['geo'] == item['geo'])& \
+                        (tmp_pandas_payout_info['payout'] == item['payout']) & \
+                        (tmp_pandas_payout_info['update_time'] == item['create_time']) & \
+                        (tmp_pandas_payout_info['tier'] == item['tier']) &\
+                        (tmp_pandas_payout_info['descr'] == item['descr'])].empty:
                     update(item, dotc_payout_info, connect)
                 else:
                     logger.debug('item:{} same'.format(item))
@@ -222,31 +225,31 @@ def merge_dotc_payout_info(pt):
 def update(item, table, conn):
     if isinstance(item['descr'], unicode):
         item['descr'] = item['descr'].encode('utf-8')
-    u = table.update().values(beg_date=str(item['beg_date']).strip(),
-                              app=str(item['app']).strip(),
-                              type=str(item['type']).strip(),
-                              geo=str(item['geo']).strip(),
-                              tier=str(item['tier']).strip(),
+    u = table.update().values(beg_date=item['beg_date'],
+                              app=item['app'],
+                              type=item['type'],
+                              geo=item['geo'],
+                              tier=item['tier'],
                               payout=float(item['payout']),
-                              descr=str(item['descr']).strip(),
+                              descr=item['descr'],
                               update_time=int(item['create_time']))\
-        .where(table.c.beg_date == str(item['beg_date']).strip())\
-        .where(table.c.app == str(item['app']).strip())\
-        .where(table.c.type == str(item['type']).strip())\
-        .where(table.c.geo == str(item['geo']).strip())
+        .where(table.c.beg_date == item['beg_date'])\
+        .where(table.c.app == item['app'])\
+        .where(table.c.type == item['type'])\
+        .where(table.c.geo == item['geo'])
     conn.execute(u)
 
 
 def add(item, table, conn):
     if isinstance(item['descr'], unicode):
         item['descr'] = item['descr'].encode('utf-8')
-    i = table.insert().values(beg_date=str(item['beg_date']).strip(),
-                              app=str(item['app']).strip(),
-                              type=str(item['type']).strip(),
-                              geo=str(item['geo']).strip(),
-                              tier=str(item['tier']).strip(),
+    i = table.insert().values(beg_date=item['beg_date'],
+                              app=item['app'],
+                              type=item['type'],
+                              geo=item['geo'],
+                              tier=item['tier'],
                               payout=float(item['payout']),
-                              descr=str(item['descr']).strip(),
+                              descr=item['descr'],
                               update_time=int(item['create_time']))
     conn.execute(i)
 
