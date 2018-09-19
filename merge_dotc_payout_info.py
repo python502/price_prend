@@ -161,6 +161,10 @@ def merge_dotc_payout_info(pt):
         new_merge_time = pd.read_sql('select update_time from {} order by update_time desc limit 1'.format(TABLE_PAYOUT_INFO), con=engine)['update_time'].tolist()
         new_merge_time = new_merge_time[0] if new_merge_time else DEFAULT_TIME
 
+        desc_table_count = pd.read_sql('select count(*) from {} where update_time={}'.format(TABLE_PAYOUT_INFO, new_merge_time), con=engine)['count(*)'].tolist()[0]
+        source_table_count = pd.read_sql('select count(*) from {} where create_time={}'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time), con=engine)['count(*)'].tolist()[0]
+        if desc_table_count == source_table_count:
+            new_merge_time += 1
         need_merge_data = pd.read_sql('select beg_date, app, type, geo, payout, tier, descr, create_time from {} where create_time BETWEEN {} and {} order by create_time,beg_date'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
         # need_merge_data = pd.read_sql('select beg_date, app, type, geo, payout, tier, descr, create_time from {} where create_time>={} and create_time<={} order by create_time,beg_date '.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
 
@@ -190,21 +194,21 @@ def merge_dotc_payout_info(pt):
             item = need_merge_data.iloc[i]
             if item['beg_date'] != beg_date:
                 beg_date = item['beg_date']
-                tmp_pandas_payout_info = pandas_payout_info.loc[pandas_payout_info['beg_date'] == item['beg_date']]
-            if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date']) & \
-                                           (tmp_pandas_payout_info['app'] == item['app']) & \
-                                           (tmp_pandas_payout_info['type'] == item['type']) & \
-                                           (tmp_pandas_payout_info['geo'] == item['geo'])].empty:
+                tmp_pandas_payout_info = pandas_payout_info.loc[pandas_payout_info['beg_date'] == item['beg_date'].strip()]
+            if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date'].strip()) & \
+                                           (tmp_pandas_payout_info['app'] == item['app'].strip()) & \
+                                           (tmp_pandas_payout_info['type'] == item['type'].strip()) & \
+                                           (tmp_pandas_payout_info['geo'] == item['geo'].strip())].empty:
                 add(item, dotc_payout_info, connect)
             else:
-                if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date']) & \
-                        (tmp_pandas_payout_info['app'] == item['app']) & \
-                        (tmp_pandas_payout_info['type'] == item['type']) & \
-                        (tmp_pandas_payout_info['geo'] == item['geo'])& \
+                if tmp_pandas_payout_info.loc[(tmp_pandas_payout_info['beg_date'] == item['beg_date'].strip()) & \
+                        (tmp_pandas_payout_info['app'] == item['app'].strip()) & \
+                        (tmp_pandas_payout_info['type'] == item['type'].strip()) & \
+                        (tmp_pandas_payout_info['geo'] == item['geo'].strip())& \
                         (tmp_pandas_payout_info['payout'] == str(item['payout'])) & \
-                        (tmp_pandas_payout_info['update_time'] == item['create_time']) & \
-                        (tmp_pandas_payout_info['tier'] == item['tier']) &\
-                        (tmp_pandas_payout_info['descr'] == item['descr'])].empty:
+                        (tmp_pandas_payout_info['update_time'] == item['create_time'].strip()) & \
+                        (tmp_pandas_payout_info['tier'] == item['tier'].strip()) &\
+                        (tmp_pandas_payout_info['descr'] == item['descr'].strip())].empty:
                     update(item, dotc_payout_info, connect)
                 else:
                     logger.debug('item:{} same'.format(item))
