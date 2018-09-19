@@ -169,6 +169,7 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
     pandas_data = pd.read_csv(original_csv, dtype=str)
     pandas_data = pandas_data.drop('geo', axis=1).join(
         pandas_data['geo'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('geo')).reset_index(drop=True)
+    pandas_data = pandas_data.drop_duplicates()
     indexs = pandas_data.loc[pandas_data['tier'].isin(['Global', 'Global-TH'])].index
     # indexs = pandas_data.loc[pandas_data['tier'].isin(['Global'])].index
 
@@ -227,7 +228,19 @@ def get_all_date(original_csv, specific=S):
     pts = filter(lambda pt: True if isinstance(pt, str) and re.search('^\d{4}-\d{2}-\d{2}$', pt) else False, dates)
     return pts
 
+
+def drop_desrc(original_dir):
+    import numpy as np
+    original_file = os.path.join(original_dir, CSV_FILE)
+    pandas_data = pd.read_csv(original_file)
+    pandas_data = pandas_data.drop(['descr'], axis=1)
+    pandas_data['descr'] = np.nan
+    pandas_data.to_csv(original_file, index=False)
+
+
 def main():
+    # drop_desrc(r'./datas')
+    # renew_original(r'./datas')
     generate_price_serial(r'./datas')
     # format_global_data(r'./datas/original.csv')
 
