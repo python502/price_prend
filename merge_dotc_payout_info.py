@@ -64,6 +64,7 @@ DEFAULT_TIME = 943891200
 def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
     try:
         #将payout float   create_time int 都转化为str
+        pandas_data['geo'] = pandas_data['geo'].str.upper()
         x = pandas_data[['payout', 'create_time']].astype(str)
         pandas_data = pandas_data.drop(['payout', 'create_time'], axis=1)
         pandas_data = pandas_data.join(x)
@@ -161,12 +162,12 @@ def merge_dotc_payout_info(pt):
         new_merge_time = pd.read_sql('select update_time from {} order by update_time desc limit 1'.format(TABLE_PAYOUT_INFO), con=engine)['update_time'].tolist()
         new_merge_time = new_merge_time[0] if new_merge_time else DEFAULT_TIME
 
-        if new_merge_time != DEFAULT_TIME:
-            desc_table_count = pd.read_sql('select count(*) from {} where update_time={}'.format(TABLE_PAYOUT_INFO, new_merge_time), con=engine)['count(*)'].tolist()[0]
-            source_table_count = pd.read_sql('select count(*) from {} where create_time={}'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time), con=engine)['count(*)'].tolist()[0]
-            if desc_table_count == source_table_count:
-                logger.info('new_merge_time:{} is complete,so skip it'.format(new_merge_time))
-                new_merge_time += 1
+        # if new_merge_time != DEFAULT_TIME:
+        #     desc_table_count = pd.read_sql('select count(*) from {} where update_time={}'.format(TABLE_PAYOUT_INFO, new_merge_time), con=engine)['count(*)'].tolist()[0]
+        #     source_table_count = pd.read_sql('select count(*) from {} where create_time={}'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time), con=engine)['count(*)'].tolist()[0]
+        #     if desc_table_count >= source_table_count:
+        #         logger.info('new_merge_time:{} is complete,so skip it'.format(new_merge_time))
+        #         new_merge_time += 1
         need_merge_data = pd.read_sql('select beg_date, app, type, geo, payout, tier, descr, create_time from {} where create_time BETWEEN {} and {} order by create_time,beg_date'.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
         # need_merge_data = pd.read_sql('select beg_date, app, type, geo, payout, tier, descr, create_time from {} where create_time>={} and create_time<={} order by create_time,beg_date '.format(TABLE_PAYOUT_INFO_UPLOAD, new_merge_time, pt), con=engine)
 
