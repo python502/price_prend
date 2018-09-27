@@ -166,9 +166,11 @@ def generate_price_serial(operate_dir):
 
 
 def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
-    pandas_data = pd.read_csv(original_csv, dtype=str)
+    pandas_data = pd.read_csv(original_csv, dtype=str, skipinitialspace=True)
     pandas_data = pandas_data.drop('geo', axis=1).join(
         pandas_data['geo'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('geo')).reset_index(drop=True)
+    indexs = pandas_data.loc[pandas_data['geo'].str.strip() == ''].index
+    pandas_data = pandas_data.drop(indexs).reset_index(drop=True)
     pandas_data = pandas_data.drop_duplicates()
     indexs = pandas_data.loc[pandas_data['tier'].isin(['Global', 'Global-TH'])].index
     # indexs = pandas_data.loc[pandas_data['tier'].isin(['Global'])].index
@@ -193,7 +195,7 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
                                    (tmp_pandas_data['app'] == data['app'])&\
                                    (tmp_pandas_data['type'] == data['type'])&\
                                    (tmp_pandas_data['geo'] == data['geo'])&\
-                                   (tmp_pandas_data['tier'].isin(['Tier1', 'Tier2', 'Tier3', 'Tier4', 'Tier5']))]
+                                   (tmp_pandas_data['tier'].isin(['Tier', 'Tier1', 'Tier2', 'Tier3', 'Tier4', 'Tier5']))]
         #没发现其他相同的但是tier的 所以价格改为0.0
         if map_info.empty:
             pandas_data.loc[index]['payout', 'tier'] = [0.0, 'Done']
