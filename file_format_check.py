@@ -58,8 +58,10 @@ def check_format(file_path):
     try:
         error_num = 0
         pandas_data = pd.read_csv(file_path, dtype=str)
+        #得到csv文件的列名
         column = pandas_data.columns.tolist()
         column.sort()
+        # 得到配置的列名
         column_key = COLUMN_FORMAT.keys()
         column_key.sort()
         if column != column_key:
