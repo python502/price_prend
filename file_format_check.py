@@ -57,6 +57,7 @@ logger = Logger(logging.INFO).getlogger()
 def check_format(file_path):
     try:
         error_num = 0
+        result = True
         pandas_data = pd.read_csv(file_path, dtype=str)
         #得到csv文件的列名
         column = pandas_data.columns.tolist()
@@ -80,10 +81,16 @@ def check_format(file_path):
                         logger.error('index:{} column:{}/value:{} is Incorrect, ex:{}'.format(index, key, check_value, ex))
                         error_num += 1
     except Exception, ex:
+        result = False
         logger.error('check_format have error:{}'.format(ex))
     finally:
         if error_num:
             logger.error('csv file:{} find error num:{}, Please fix it before upload'.format(file_path, error_num))
+            result = False
+        if result:
+            logger.info('The file format is correct')
+        else:
+            logger.info('The file format is Incorrect')
 
 
 def main():
