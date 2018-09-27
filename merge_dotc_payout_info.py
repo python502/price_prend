@@ -71,7 +71,7 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
         pandas_data = pandas_data.drop('geo', axis=1).join(
             pandas_data['geo'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('geo')).reset_index(drop=True)
         #防止输入,, 或者 UA,这种格式的数据
-        indexs = pandas_data.loc[pandas_data['geo'] == ''].index
+        indexs = pandas_data.loc[pandas_data['geo'].str.strip() == ''].index
         pandas_data = pandas_data.drop(indexs).reset_index(drop=True)
         pandas_data = pandas_data.drop_duplicates()
         indexs = pandas_data.loc[pandas_data['tier'].str.lower() == 'global'].index
