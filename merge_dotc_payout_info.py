@@ -92,7 +92,7 @@ def format_global_data(pandas_data, write_tmp=r'./temporary_merge_upload.csv'):
                 create_time = data['create_time']
                 tmp_pandas_data = pandas_data.loc[(pandas_data['beg_date'] == data['beg_date']) & (pandas_data['create_time'] == data['create_time'])]
             # data['tier'] == 'Global'
-            add_geo_global[(data['beg_date'], data['app'], data['type'], 'global', 'Done', data['create_time'])] = [data['payout'], data['descr']]
+            add_geo_global[(data['beg_date'], data['app'], data['type'], 'GLOBAL', 'Done', data['create_time'])] = [data['payout'], data['descr']]
             map_info = tmp_pandas_data.loc[(tmp_pandas_data['beg_date'] == data['beg_date']) & \
                                            (tmp_pandas_data['app'] == data['app']) & \
                                            (tmp_pandas_data['type'] == data['type']) & \
