@@ -190,7 +190,7 @@ def format_global_data(original_csv, write_tmp=r'./temporary.csv'):
             date = data['date']
             tmp_pandas_data = pandas_data.loc[pandas_data['date'] == data['date']]
         #data['tier'] == 'Global'
-        add_geo_global[(data['date'], data['app'], data['type'], 'global', 'Done')] = [data['payout'], data['descr']]
+        add_geo_global[(data['date'], data['app'], data['type'], 'GLOBAL', 'Done')] = [data['payout'], data['descr']]
         map_info = tmp_pandas_data.loc[(tmp_pandas_data['date'] == data['date'])&\
                                    (tmp_pandas_data['app'] == data['app'])&\
                                    (tmp_pandas_data['type'] == data['type'])&\
