@@ -78,8 +78,8 @@ def check_format(file_path):
                         logger.error('index:{} column:{}/value:{} is Incorrect'.format(index, key, check_value))
                         error_num += 1
                 except Exception, ex:
-                        logger.error('index:{} column:{}/value:{} is Incorrect, ex:{}'.format(index, key, check_value, ex))
-                        error_num += 1
+                    logger.error('index:{} column:{}/value:{} is Incorrect, ex:{}'.format(index, key, check_value, ex))
+                    error_num += 1
     except Exception, ex:
         result = False
         logger.error('check_format have error:{}'.format(ex))
